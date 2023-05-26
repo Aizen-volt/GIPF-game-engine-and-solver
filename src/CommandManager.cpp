@@ -1,5 +1,8 @@
 #include <string>
 #include <iostream>
+#include <vector>
+#include <sstream>
+#include <iterator>
 #include "CommandManager.h"
 
 void CommandManager::DispatchCommand() {
@@ -9,6 +12,17 @@ void CommandManager::DispatchCommand() {
             CreateGame();
         else if (command == "PRINT_GAME_BOARD")
             game->PrintBoard();
+        else if (command == "DO_MOVE") {
+            std::string line, temp;
+            getline(std::cin, line);
+            line.erase(line.begin());
+            std::vector<std::string> arguments;
+            std::stringstream ss(line);
+            while (std::getline(ss, temp, ' ')) {
+                arguments.push_back(temp);
+            }
+            game->MakeMove(arguments);
+        }
     }
 }
 

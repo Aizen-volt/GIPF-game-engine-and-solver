@@ -14,10 +14,6 @@ Game::Game(int boardSize, int pawnTakeThreshold, int whiteInitialPawns, int blac
     whiteOnBoard = 0;
     blackOnBoard = 0;
 
-    if (!CheckGameConfigCorrectness()) {
-        std::cout << "Game config does not meet requirements!\n";
-        exit(1);
-    }
     InitBoardArray();
     bool inputCorrect = FillBoard();
 
@@ -198,4 +194,61 @@ void Game::PrintBoard() {
         }
         std::cout << "\n";
     }
+}
+
+
+void Game::MakeMove(std::vector<std::string>& arguments) {
+    int xSource, ySource, xDest, yDest;
+    std::string move = arguments[0];
+    DetermineMoveCoords(move, &xSource, &ySource, &xDest, &yDest);
+    if (CheckBadIndex(xSource, ySource) || CheckBadIndex(xDest, yDest))
+        return;
+//    if (CheckUnknownDirection())
+//        return;
+    if (CheckBadMoveWrongField(xSource, ySource, xDest, yDest))
+        return;
+//    if (CheckBadMoveRowFull(xDest, yDest))
+//        return;
+}
+
+
+void Game::DetermineMoveCoords(std::string& move, int* xSource, int* ySource, int* xDest, int* yDest) {
+    *ySource = move[0] - 'a';
+    move.erase(move.begin());
+    std::string temp;
+    while (move[0] != '-') {
+        temp.push_back(move[0]);
+        move.erase(move.begin());
+    }
+    *xSource = std::stoi(temp) - 1;
+    move.erase(move.begin());
+    *yDest = move[0] - 'a';
+    move.erase(move.begin());
+    *xDest = std::stoi(move) - 1;
+}
+
+
+bool Game::CheckBadIndex(int x, int y) {
+    if (y < 0 || y >= DIAGONAL_LENGTH + 2 || x < 0 || x >= board[y].size()) {
+        std::cout << "BAD_MOVE_" << char(y + 'a') << x + 1 << "_IS_WRONG_INDEX\n";
+        return true;
+    }
+    return false;
+}
+
+
+bool Game::CheckBadMoveWrongField(int xSource, int ySource, int xDest, int yDest) {
+    auto it = board[ySource].begin();
+    std::advance(it, xSource);
+    if ((*it)->GetState() != BORDER) {
+        std::cout << "BAD_MOVE_" << char(ySource + 'a') << xSource + 1 << "_IS_WRONG_STARTING_FIELD\n";
+        return true;
+    }
+    it = board[yDest].begin();
+    std::advance(it, xDest);
+    if ((*it)->GetState() == BORDER) {
+        std::cout << "BAD_MOVE_" << char(yDest + 'a') << xDest + 1 << "_IS_WRONG_DESTINATION_FIELD\n";
+        return true;
+    }
+    return false;
 }

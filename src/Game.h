@@ -2,6 +2,7 @@
 #define GIPF_GAME_H
 
 #include <list>
+#include <vector>
 #include "BoardCell.h"
 
 #define in_progress 0
@@ -35,11 +36,15 @@ private:
     void InitBoardArray();
     void DeleteBoardArray();
     bool FillBoard();
+    static void DetermineMoveCoords(std::string& move, int* xSource, int* ySource, int* xDest, int* yDest);
+    bool CheckBadIndex(int x, int y);
+    bool CheckBadMoveWrongField(int xSource, int ySource, int xDest, int yDest);
 public:
     Game(int boardSize, int pawnTakeThreshold, int whiteInitialPawns, int blackInitialPawns, int whiteReserve, int blackReserve, bool currentPlayer);
     ~Game();
 
     void PrintBoard();
+    void MakeMove(std::vector<std::string>& arguments);
 };
 
 
