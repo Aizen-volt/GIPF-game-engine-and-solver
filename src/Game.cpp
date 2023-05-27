@@ -210,8 +210,28 @@ void Game::MakeMove(std::vector<std::string>& arguments) {
         return;
     if (CheckUnknownDirection(xSource, ySource, xDest, yDest))
         return;
-//    if (CheckBadMoveRowFull(xDest, yDest))
-//        return;
+    if (CheckBadMoveRowFull(xSource, ySource, xDest, yDest))
+        return;
+}
+
+
+bool Game::CheckBadMoveRowFull(int xSource, int ySource, int xDest, int yDest) {
+    int xCurrent = xDest, yCurrent = yDest, xPrev = xSource, yPrev = ySource;
+    auto it = board[yCurrent].begin();
+    std::advance(it, xCurrent);
+    while ((*it)->GetState() != BORDER) {
+        if ((*it)->GetState() == EMPTY)
+            return false;
+        std::pair<int, int> next = (*it)->foundConnections.find({xPrev, yPrev})->second;
+        xPrev = xCurrent;
+        yPrev = yCurrent;
+        xCurrent = next.first;
+        yCurrent = next.second;
+        it = board[yCurrent].begin();
+        std::advance(it, xCurrent);
+    }
+    std::cout << "BAD_MOVE_ROW_IS_FULL\n";
+    return true;
 }
 
 
