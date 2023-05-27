@@ -133,6 +133,7 @@ bool Game::FillBoard() {
         }
         std::string temp;
         getline(std::cin, temp);
+        temp.erase(std::remove_if(temp.begin(), temp.end(), ::isspace), temp.end());
         if (!temp.empty()) {
             inputCorrect = false;
         }
@@ -141,6 +142,9 @@ bool Game::FillBoard() {
 }
 
 void Game::PrintBoard() {
+    std:: cout << boardSize << " " << pawnTakeThreshold << " " << whiteInitialPawns << " " << blackInitialPawns << "\n";
+    std::cout << whiteReserve << " " << blackReserve << " " << (currentPlayer ? "B" : "W");
+
     for (int i = 0; i < boardSize + 1; i++) {
         for (int j = 0; j < DIAGONAL_LENGTH + 1 - boardSize - i; j++) {
             std::cout << " ";
@@ -162,7 +166,7 @@ void Game::PrintBoard() {
                     std::cout << "B";
                     break;
                 case BORDER:
-                    std::cout << "+";
+                    //std::cout << "+";
                     break;
             }
             std::cout << " ";
@@ -193,7 +197,7 @@ void Game::PrintBoard() {
                     std::cout << "B";
                     break;
                 case BORDER:
-                    std::cout << "+";
+                    //std::cout << "+";
                     break;
             }
             std::cout << " ";
@@ -217,6 +221,7 @@ void Game::MakeMove(std::vector<std::string>& arguments) {
         return;
 
     MoveLine(xSource, ySource, xDest, yDest);
+
 }
 
 
@@ -252,6 +257,10 @@ void Game::MoveLine(int xSource, int ySource, int xDest, int yDest) {
     it = board[yDest].begin();
     std::advance(it, xDest);
     (*it)->SetState(currentPlayer);
+
+    currentPlayer ? blackReserve-- : whiteReserve--;
+    currentPlayer ? blackOnBoard++ : whiteOnBoard++;
+
     currentPlayer = !currentPlayer;
     std::cout << "MOVE_COMMITTED\n";
 }
