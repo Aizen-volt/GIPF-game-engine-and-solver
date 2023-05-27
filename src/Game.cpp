@@ -16,6 +16,8 @@ Game::Game(int boardSize, int pawnTakeThreshold, int whiteInitialPawns, int blac
 
     InitBoardArray();
     bool inputCorrect = FillBoard();
+    FindCellConnections();
+
 
     if (!inputCorrect)
         std::cout << "WRONG_BOARD_ROW_LENGTH\n";
@@ -25,6 +27,7 @@ Game::Game(int boardSize, int pawnTakeThreshold, int whiteInitialPawns, int blac
         std::cout << "WRONG_BLACK_PAWNS_NUMBER\n";
     else
         std::cout << "BOARD_STATE_OK\n";
+
 }
 
 Game::~Game() {
@@ -203,12 +206,25 @@ void Game::MakeMove(std::vector<std::string>& arguments) {
     DetermineMoveCoords(move, &xSource, &ySource, &xDest, &yDest);
     if (CheckBadIndex(xSource, ySource) || CheckBadIndex(xDest, yDest))
         return;
-//    if (CheckUnknownDirection())
-//        return;
     if (CheckBadMoveWrongField(xSource, ySource, xDest, yDest))
+        return;
+    if (CheckUnknownDirection(xSource, ySource, xDest, yDest))
         return;
 //    if (CheckBadMoveRowFull(xDest, yDest))
 //        return;
+}
+
+
+bool Game::CheckUnknownDirection(int xSource, int ySource, int xDest, int yDest) {
+    auto it = board[ySource].begin();
+    std::advance(it, xSource);
+    std::pair<int, int> dest = {xDest, yDest};
+    for (auto & foundConnection : (*it)->foundConnections) {
+        if (foundConnection.second == dest)
+            return false;
+    }
+    std::cout << "UNKNOWN_MOVE_DIRECTION\n";
+    return true;
 }
 
 
@@ -251,4 +267,188 @@ bool Game::CheckBadMoveWrongField(int xSource, int ySource, int xDest, int yDest
         return true;
     }
     return false;
+}
+
+
+void Game::FindCellConnections() {
+    for (int y = 0; y < DIAGONAL_LENGTH + 2; y++) {
+        for (int x = 0; x < board[y].size(); x++) {
+            auto it = board[y].begin();
+            std::advance(it, x);
+
+            std::pair<int, int> source;
+            std::pair<int, int> dest;
+
+            //borders
+            if ((*it)->GetState() == BORDER) {
+                if (x == 0) {
+                    if (y == 0) {
+                        source = {x, y};
+                        dest = {x + 1, y + 1};
+                        (*it)->foundConnections.insert({source, dest});
+                    }
+                    else if (y == (DIAGONAL_LENGTH + 2) / 2) {
+                        source = {x, y};
+                        dest = {x + 1, y};
+                        (*it)->foundConnections.insert({source, dest});
+                    }
+                    else if (y == DIAGONAL_LENGTH + 1) {
+                        source = {x, y};
+                        dest = {x + 1, y - 1};
+                        (*it)->foundConnections.insert({source, dest});
+                    }
+                    else if (y < (DIAGONAL_LENGTH + 2) / 2) {
+                        source = {x, y};
+                        dest = {x + 1, y};
+                        (*it)->foundConnections.insert({source, dest});
+
+                        source = {x, y};
+                        dest = {x + 1, y + 1};
+                        (*it)->foundConnections.insert({source, dest});
+                    }
+                    else {
+                        source = {x, y};
+                        dest = {x + 1, y - 1};
+                        (*it)->foundConnections.insert({source, dest});
+
+                        source = {x, y};
+                        dest = {x + 1, y};
+                        (*it)->foundConnections.insert({source, dest});
+                    }
+                }
+                else if (x == board[y].size() - 1) {
+                    if (y == 0) {
+                        source = {x, y};
+                        dest = {x, y + 1};
+                        (*it)->foundConnections.insert({source, dest});
+                    }
+                    else if (y == (DIAGONAL_LENGTH + 2) / 2) {
+                        source = {x, y};
+                        dest = {x - 1, y};
+                        (*it)->foundConnections.insert({source, dest});
+                    }
+                    else if (y == DIAGONAL_LENGTH + 1) {
+                        source = {x, y};
+                        dest = {x, y - 1};
+                        (*it)->foundConnections.insert({source, dest});
+                    }
+                    else if (y < (DIAGONAL_LENGTH + 2) / 2) {
+                        source = {x, y};
+                        dest = {x - 1 , y};
+                        (*it)->foundConnections.insert({source, dest});
+
+                        source = {x, y};
+                        dest = {x, y + 1};
+                        (*it)->foundConnections.insert({source, dest});
+                    }
+                    else {
+                        source = {x, y};
+                        dest = {x, y - 1};
+                        (*it)->foundConnections.insert({source, dest});
+
+                        source = {x, y};
+                        dest = {x - 1, y};
+                        (*it)->foundConnections.insert({source, dest});
+                    }
+                }
+                else if (y == 0) {
+                    source = {x, y};
+                    dest = {x, y + 1};
+                    (*it)->foundConnections.insert({source, dest});
+
+                    source = {x, y};
+                    dest = {x + 1, y + 1};
+                    (*it)->foundConnections.insert({source, dest});
+                }
+                else {
+                    source = {x, y};
+                    dest = {x, y - 1};
+                    (*it)->foundConnections.insert({source, dest});
+
+                    source = {x, y};
+                    dest = {x + 1, y - 1};
+                    (*it)->foundConnections.insert({source, dest});
+                }
+                continue;
+            }
+
+            //up-right down-left
+            source = {x + 1, y};
+            dest = {x - 1, y};
+            (*it)->foundConnections.insert({source, dest});
+
+            source = {x - 1, y};
+            dest = {x + 1, y};
+            (*it)->foundConnections.insert({source, dest});
+
+            //left right
+            if (y == (DIAGONAL_LENGTH + 2) / 2) {
+                source = {x - 1, y - 1};
+                dest = {x, y + 1};
+                (*it)->foundConnections.insert({source, dest});
+
+                source = {x, y + 1};
+                dest = {x - 1, y - 1};
+                (*it)->foundConnections.insert({source, dest});
+            }
+            else if (y > (DIAGONAL_LENGTH + 2) / 2) {
+                source = {x, y - 1};
+                dest = {x, y + 1};
+                (*it)->foundConnections.insert({source, dest});
+
+                source = {x, y + 1};
+                dest = {x, y - 1};
+                (*it)->foundConnections.insert({source, dest});
+            }
+            else {
+                source = {x - 1, y - 1};
+                dest = {x + 1, y + 1};
+                (*it)->foundConnections.insert({source, dest});
+
+                source = {x + 1, y + 1};
+                dest = {x - 1, y - 1};
+                (*it)->foundConnections.insert({source, dest});
+            }
+
+            //up-left down-right
+            if (y == (DIAGONAL_LENGTH + 2) / 2) {
+                source = {x, y - 1};
+                dest = {x - 1, y + 1};
+                (*it)->foundConnections.insert({source, dest});
+
+                source = {x - 1, y + 1};
+                dest = {x, y - 1};
+                (*it)->foundConnections.insert({source, dest});
+            }
+            else if (y > (DIAGONAL_LENGTH + 2) / 2) {
+                source = {x + 1, y - 1};
+                dest = {x - 1, y + 1};
+                (*it)->foundConnections.insert({source, dest});
+
+                source = {x - 1, y + 1};
+                dest = {x + 1, y - 1};
+                (*it)->foundConnections.insert({source, dest});
+            }
+            else {
+                source = {x, y - 1};
+                dest = {x, y + 1};
+                (*it)->foundConnections.insert({source, dest});
+
+                source = {x, y + 1};
+                dest = {x, y - 1};
+                (*it)->foundConnections.insert({source, dest});
+            }
+        }
+    }
+//    for (int y = 0; y < DIAGONAL_LENGTH + 2; y++) {
+//        for (int x = 0; x < board[y].size(); x++) {
+//            auto it = board[y].begin();
+//            std::advance(it, x);
+//            std::cout << char(y + 'a') << x + 1 << " ";
+//            for (auto const& pair : (*it)->foundConnections) {
+//                std::cout << char(pair.first.second + 'a') << pair.first.first + 1 << " -> " << char(pair.second.second + 'a') << pair.second.first + 1 << "  ";
+//            }
+//            std::cout << "\n";
+//        }
+//    }
 }

@@ -36,9 +36,11 @@ private:
     void InitBoardArray();
     void DeleteBoardArray();
     bool FillBoard();
+    void FindCellConnections();
     static void DetermineMoveCoords(std::string& move, int* xSource, int* ySource, int* xDest, int* yDest);
     bool CheckBadIndex(int x, int y);
     bool CheckBadMoveWrongField(int xSource, int ySource, int xDest, int yDest);
+    bool CheckUnknownDirection(int xSource, int ySource, int xDest, int yDest);
 public:
     Game(int boardSize, int pawnTakeThreshold, int whiteInitialPawns, int blackInitialPawns, int whiteReserve, int blackReserve, bool currentPlayer);
     ~Game();
