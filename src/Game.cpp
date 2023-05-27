@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <stack>
 #include "Game.h"
 
 Game::Game(int boardSize, int pawnTakeThreshold, int whiteInitialPawns, int blackInitialPawns, int whiteReserve, int blackReserve, bool currentPlayer) {
@@ -212,13 +213,54 @@ void Game::MakeMove(std::vector<std::string>& arguments) {
         return;
     if (CheckBadMoveRowFull(xSource, ySource, xDest, yDest))
         return;
+
+    MoveLine(xSource, ySource, xDest, yDest);
+}
+
+
+void Game::MoveLine(int xSource, int ySource, int xDest, int yDest) {
+    int xCurrent = xDest, yCurrent = yDest, xPrev = xSource, yPrev = ySource;
+
+    //stores info about pawns that will be moved and their destination points
+    std::stack<std::pair<BoardCell*, std::pair<int, int>>> pawnsToMove;
+
+    auto it = board[yCurrent].begin();
+    std::advance(it, xCurrent);
+
+    while ((*it)->GetState() != EMPTY && (*it)->GetState() != BORDER) {
+        std::pair<int, int> next = (*it)->foundConnections.find({xPrev, yPrev})->second;
+        xPrev = xCurrent;
+        yPrev = yCurrent;
+        xCurrent = next.first;
+        yCurrent = next.second;
+        pawnsToMove.emplace(*it, next);
+        it = board[yCurrent].begin();
+        std::advance(it, xCurrent);
+    }
+    while (!pawnsToMove.empty()) {
+        std::pair<BoardCell*, std::pair<int, int>> temp = pawnsToMove.top();
+        pawnsToMove.pop();
+        BoardCell* cell = temp.first;
+        std::pair<int, int> dest = temp.second;
+        auto destCell = board[dest.second].begin();
+        std::advance(destCell, dest.first);
+        (*destCell)->SetState(cell->GetState());
+        cell->SetState(EMPTY);
+    }
+    it = board[yDest].begin();
+    std::advance(it, xDest);
+    (*it)->SetState(currentPlayer);
+    currentPlayer = !currentPlayer;
+    std::cout << "MOVE_COMMITTED\n";
 }
 
 
 bool Game::CheckBadMoveRowFull(int xSource, int ySource, int xDest, int yDest) {
     int xCurrent = xDest, yCurrent = yDest, xPrev = xSource, yPrev = ySource;
+
     auto it = board[yCurrent].begin();
     std::advance(it, xCurrent);
+
     while ((*it)->GetState() != BORDER) {
         if ((*it)->GetState() == EMPTY)
             return false;
