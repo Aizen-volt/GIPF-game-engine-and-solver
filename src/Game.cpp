@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <stack>
+#include <algorithm>
 #include "Game.h"
 
 Game::Game(int boardSize, int pawnTakeThreshold, int whiteInitialPawns, int blackInitialPawns, int whiteReserve, int blackReserve, bool currentPlayer) {
@@ -96,6 +97,7 @@ bool Game::FillBoard() {
         }
         std::string temp;
         getline(std::cin, temp);
+        temp.erase(std::remove_if(temp.begin(), temp.end(), ::isspace), temp.end());
         if (!temp.empty()) {
             inputCorrect = false;
         }
