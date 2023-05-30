@@ -43,6 +43,10 @@ private:
     bool CheckUnknownDirection(int xSource, int ySource, int xDest, int yDest);
     bool CheckBadMoveRowFull(int xSource, int ySource, int xDest, int yDest);
     void MoveLine(int xSource, int ySource, int xDest, int yDest);
+    int CheckRowsToCapture();
+    int CheckCapturesDownLeftUpRight();
+    int CheckCapturesDownRightUpLeft();
+    int CheckCapturesLeftRight();
 public:
     Game(int boardSize, int pawnTakeThreshold, int whiteInitialPawns, int blackInitialPawns, int whiteReserve, int blackReserve, bool currentPlayer);
     ~Game();
