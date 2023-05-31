@@ -57,10 +57,10 @@ void Game::InitBoardArray() {
         int offset = abs(i - (DIAGONAL_LENGTH + 2) / 2);
         for (int j = 0; j < DIAGONAL_LENGTH + 2 - offset; j++) {
             if ( i == 0 || i == DIAGONAL_LENGTH + 1 || j == 0 || j == DIAGONAL_LENGTH + 2 - offset - 1) {
-                board[i].push_back(new BoardCell(i, j, BORDER));
+                board[i].push_back(new BoardCell(j, i, BORDER));
                 continue;
             }
-            board[i].push_back(new BoardCell(i, j, EMPTY));
+            board[i].push_back(new BoardCell(j, i, EMPTY));
         }
     }
 }
@@ -234,6 +234,69 @@ void Game::MakeMove(std::vector<std::string>& arguments) {
         return;
 
     MoveLine(xSource, ySource, xDest, yDest);
+    std::vector<std::pair<std::vector<BoardCell*>, bool>> rowsToCapture = GetRowsToCapture();
+    if (rowsToCapture.size() > 1 && arguments.size() < 3)
+        std::cout << "NOT SPECIFIED\n";
+    else {
+        bool color = arguments[1] == "b:";
+        int y1 = arguments[2][0] - 'a';
+        int x1 = arguments[2][1] - '0' - 1;
+        int y2 = arguments[3][0] - 'a';
+        int x2 = arguments[3][1] - '0' - 1;
+
+        for (auto &row : rowsToCapture) {
+            bool foundFirst = false;
+            bool foundSecond = false;
+            int counter = 0;
+
+            for (auto *current : row.first) {
+                if (current->x == x1 && current->y == y1)
+                    foundFirst = true;
+                if (current->x == x2 && current->y == y2)
+                    foundSecond = true;
+
+                if (foundFirst || foundSecond)
+                    counter++;
+
+                if (foundFirst && foundSecond) {
+                    if (counter < pawnTakeThreshold) {
+                        std::cout << "WRONG_INDEX_OF_CHOSEN_ROW\n";
+                        return;
+                    }
+
+                    if (current->GetState() != color) {
+                        std::cout << "WRONG_COLOR_OF_CHOSEN_ROW\n";
+                        return;
+                    }
+
+                    std::cout << "MOVE_COMMITTED\n";
+                    for (auto *current : row.first) {
+                        if (current->GetState() == row.second) {
+                            row.second == BLACK ? blackReserve++ : whiteReserve++;
+                        }
+                        current->GetState() == BLACK ? blackOnBoard-- : whiteOnBoard--;
+                        current->SetState(EMPTY);
+                    }
+                    return;
+                }
+            }
+        }
+        std::cout << "WRONG_INDEX_OF_CHOSEN_ROW\n";
+    }
+}
+
+
+std::vector<std::pair<std::vector<BoardCell*>, bool>> Game::GetRowsToCapture() {
+    std::vector<std::pair<std::vector<BoardCell*>, bool>> first = CheckCapturesLeftRight();
+    std::vector<std::pair<std::vector<BoardCell*>, bool>> second = CheckCapturesDownRightUpLeft();
+    std::vector<std::pair<std::vector<BoardCell*>, bool>> third = CheckCapturesDownLeftUpRight();
+    std::vector<std::pair<std::vector<BoardCell*>, bool>> final;
+
+    std::copy(first.begin(), first.end(), std::back_inserter(final));
+    std::copy(second.begin(), second.end(), std::back_inserter(final));
+    std::copy(third.begin(), third.end(), std::back_inserter(final));
+
+    return final;
 }
 
 
@@ -274,7 +337,6 @@ void Game::MoveLine(int xSource, int ySource, int xDest, int yDest) {
     currentPlayer ? blackOnBoard++ : whiteOnBoard++;
 
     currentPlayer = !currentPlayer;
-    std::cout << "MOVE_COMMITTED\n";
 }
 
 
@@ -539,52 +601,73 @@ void Game::FindCellConnections() {
 }
 
 
-int Game::CheckCapturesDownLeftUpRight() {
-    int captureRowsCount = 0;
+std::vector<std::pair<std::vector<BoardCell*>, bool>> Game::CheckCapturesDownLeftUpRight() {
+    std::vector<std::pair<std::vector<BoardCell*>, bool>> output;
 
     for (int i = 1; i <= DIAGONAL_LENGTH; i++) {
         auto cell = board[i].begin();
         std::advance(cell, 1);
 
         int state = (*cell)->GetState();
-        int counter = 1;
+        int counter = 0;
+        std::vector<BoardCell*> line;
 
         while (true) {
             if ((*cell)->GetState() == BORDER)
                 break;
 
             if ((*cell)->GetState() == EMPTY) {
-                if (counter >= pawnTakeThreshold)
-                    captureRowsCount++;
+                if (counter >= pawnTakeThreshold) {
+                    int whiteCount = 0;
+                    int blackCount = 0;
+                    for (BoardCell* b : line) {
+                        b->GetState() == WHITE ? whiteCount++ : blackCount++;
+                        if (whiteCount >= pawnTakeThreshold || blackCount >= pawnTakeThreshold) {
+                            output.emplace_back(line, blackCount > whiteCount);
+                            break;
+                        }
+                    }
+                }
+                line.clear();
+                state = EMPTY;
                 counter = 1;
             }
             else {
-                if ((*cell)->GetState() == state)
+                if ((*cell)->GetState() == state) {
                     counter++;
+                    line.push_back(*cell);
+                }
                 else {
-                    if (counter >= pawnTakeThreshold)
-                        captureRowsCount++;
-                    counter = 1;
                     state = (*cell)->GetState();
+                    line.push_back(*cell);
                 }
             }
-
             std::advance(cell, 1);
         }
 
-        if (counter >= pawnTakeThreshold)
-            captureRowsCount++;
+        if (counter >= pawnTakeThreshold) {
+            int whiteCount = 0;
+            int blackCount = 0;
+            for (BoardCell* b : line) {
+                b->GetState() == WHITE ? whiteCount++ : blackCount++;
+                if (whiteCount >= pawnTakeThreshold || blackCount >= pawnTakeThreshold) {
+                    output.emplace_back(line, blackCount > whiteCount);
+                    break;
+                }
+            }
+        }
+        line.clear();
     }
-    return captureRowsCount;
+    return output;
 }
 
 
-int Game::CheckCapturesDownRightUpLeft() {
-    int captureRowsCount = 0;
+std::vector<std::pair<std::vector<BoardCell*>, bool>> Game::CheckCapturesDownRightUpLeft() {
+    std::vector<std::pair<std::vector<BoardCell*>, bool>> output;
 
     for (int i = 1; i <= DIAGONAL_LENGTH; i++) {
         std::list<BoardCell*>::iterator it;
-        int counter = 1;
+        int counter = 0;
         int xCurr, yCurr, xPrev, yPrev;
 
         if (i <= boardSize) {
@@ -604,23 +687,36 @@ int Game::CheckCapturesDownRightUpLeft() {
         xPrev = xCurr;
         int state = (*it)->GetState();
 
+        std::vector<BoardCell*> line;
+
         while (true) {
             if ((*it)->GetState() == BORDER)
                 break;
 
             if ((*it)->GetState() == EMPTY) {
-                if (counter >= pawnTakeThreshold)
-                    captureRowsCount++;
+                if (counter >= pawnTakeThreshold) {
+                    int whiteCount = 0;
+                    int blackCount = 0;
+                    for (BoardCell* b : line) {
+                        b->GetState() == WHITE ? whiteCount++ : blackCount++;
+                        if (whiteCount >= pawnTakeThreshold || blackCount >= pawnTakeThreshold) {
+                            output.emplace_back(line, blackCount > whiteCount);
+                            break;
+                        }
+                    }
+                }
+                line.clear();
+                state = EMPTY;
                 counter = 1;
             }
             else {
-                if ((*it)->GetState() == state)
+                if ((*it)->GetState() == state) {
                     counter++;
+                    line.push_back(*it);
+                }
                 else {
-                    if (counter >= pawnTakeThreshold)
-                        captureRowsCount++;
-                    counter = 1;
                     state = (*it)->GetState();
+                    line.push_back(*it);
                 }
             }
             //std::cout << char(yCurr + 'a') << xCurr + 1 << " ";
@@ -634,42 +730,64 @@ int Game::CheckCapturesDownRightUpLeft() {
             std::advance(it, xCurr);
         }
 
-        if (counter >= pawnTakeThreshold)
-            captureRowsCount++;
+        if (counter >= pawnTakeThreshold) {
+            int whiteCount = 0;
+            int blackCount = 0;
+            for (BoardCell* b : line) {
+                b->GetState() == WHITE ? whiteCount++ : blackCount++;
+                if (whiteCount >= pawnTakeThreshold || blackCount >= pawnTakeThreshold) {
+                    output.emplace_back(line, blackCount > whiteCount);
+                    break;
+                }
+            }
+        }
+        line.clear();
     }
-
-    return captureRowsCount;
+    return output;
 }
 
 
-int Game::CheckCapturesLeftRight() {
-    int captureRowsCount = 0;
+std::vector<std::pair<std::vector<BoardCell*>, bool>> Game::CheckCapturesLeftRight() {
+    std::vector<std::pair<std::vector<BoardCell*>, bool>> output;
 
     for (int i = 1; i <= boardSize; i++) {
         auto it = board[1].begin();
         std::advance(it, i);
 
-        int counter = 1;
+        int counter = 0;
         int xCurr = i, yCurr = 1, xPrev = xCurr - 1, yPrev = yCurr - 1;
         int state = (*it)->GetState();
+
+        std::vector<BoardCell*> line;
 
         while (true) {
             if ((*it)->GetState() == BORDER)
                 break;
 
             if ((*it)->GetState() == EMPTY) {
-                if (counter >= pawnTakeThreshold)
-                    captureRowsCount++;
+                if (counter >= pawnTakeThreshold) {
+                    int whiteCount = 0;
+                    int blackCount = 0;
+                    for (BoardCell* b : line) {
+                        b->GetState() == WHITE ? whiteCount++ : blackCount++;
+                        if (whiteCount >= pawnTakeThreshold || blackCount >= pawnTakeThreshold) {
+                            output.emplace_back(line, blackCount > whiteCount);
+                            break;
+                        }
+                    }
+                }
+                line.clear();
+                state = EMPTY;
                 counter = 1;
             }
             else {
-                if ((*it)->GetState() == state)
+                if ((*it)->GetState() == state) {
                     counter++;
+                    line.push_back(*it);
+                }
                 else {
-                    if (counter >= pawnTakeThreshold)
-                        captureRowsCount++;
-                    counter = 1;
                     state = (*it)->GetState();
+                    line.push_back(*it);
                 }
             }
 
@@ -682,35 +800,58 @@ int Game::CheckCapturesLeftRight() {
             std::advance(it, xCurr);
         }
 
-        if (counter >= pawnTakeThreshold)
-            captureRowsCount++;
+        if (counter >= pawnTakeThreshold) {
+            int whiteCount = 0;
+            int blackCount = 0;
+            for (BoardCell* b : line) {
+                b->GetState() == WHITE ? whiteCount++ : blackCount++;
+                if (whiteCount >= pawnTakeThreshold || blackCount >= pawnTakeThreshold) {
+                    output.emplace_back(line, blackCount > whiteCount);
+                    break;
+                }
+            }
+        }
+        line.clear();
     }
 
     for (int i = 1; i < boardSize; i++) {
         auto it = board[1 + i].begin();
         std::advance(it, 1);
 
-        int counter = 1;
+        int counter = 0;
         int xCurr = 1, yCurr = 1 + i, xPrev = xCurr - 1, yPrev = yCurr - 1;
         int state = (*it)->GetState();
+
+        std::vector<BoardCell*> line;
 
         while (true) {
             if ((*it)->GetState() == BORDER)
                 break;
 
             if ((*it)->GetState() == EMPTY) {
-                if (counter >= pawnTakeThreshold)
-                    captureRowsCount++;
+                if (counter >= pawnTakeThreshold) {
+                    int whiteCount = 0;
+                    int blackCount = 0;
+                    for (BoardCell* b : line) {
+                        b->GetState() == WHITE ? whiteCount++ : blackCount++;
+                        if (whiteCount >= pawnTakeThreshold || blackCount >= pawnTakeThreshold) {
+                            output.emplace_back(line, blackCount > whiteCount);
+                            break;
+                        }
+                    }
+                }
+                line.clear();
+                state = EMPTY;
                 counter = 1;
             }
             else {
-                if ((*it)->GetState() == state)
+                if ((*it)->GetState() == state) {
                     counter++;
+                    line.push_back(*it);
+                }
                 else {
-                    if (counter >= pawnTakeThreshold)
-                        captureRowsCount++;
-                    counter = 1;
                     state = (*it)->GetState();
+                    line.push_back(*it);
                 }
             }
 
@@ -723,19 +864,28 @@ int Game::CheckCapturesLeftRight() {
             std::advance(it, xCurr);
         }
 
-        if (counter >= pawnTakeThreshold)
-            captureRowsCount++;
+        if (counter >= pawnTakeThreshold) {
+            int whiteCount = 0;
+            int blackCount = 0;
+            for (BoardCell* b : line) {
+                b->GetState() == WHITE ? whiteCount++ : blackCount++;
+                if (whiteCount >= pawnTakeThreshold || blackCount >= pawnTakeThreshold) {
+                    output.emplace_back(line, blackCount > whiteCount);
+                    break;
+                }
+            }
+        }
+        line.clear();
     }
-
-    return captureRowsCount;
+    return output;
 }
 
 
 int Game::CheckRowsToCapture() {
     int captureRowsCount = 0;
-    captureRowsCount += CheckCapturesDownLeftUpRight();
-    captureRowsCount += CheckCapturesDownRightUpLeft();
-    captureRowsCount += CheckCapturesLeftRight();
+    captureRowsCount += CheckCapturesDownLeftUpRight().size();
+    captureRowsCount += CheckCapturesDownRightUpLeft().size();
+    captureRowsCount += CheckCapturesLeftRight().size();
 
     return captureRowsCount;
 }

@@ -44,9 +44,10 @@ private:
     bool CheckBadMoveRowFull(int xSource, int ySource, int xDest, int yDest);
     void MoveLine(int xSource, int ySource, int xDest, int yDest);
     int CheckRowsToCapture();
-    int CheckCapturesDownLeftUpRight();
-    int CheckCapturesDownRightUpLeft();
-    int CheckCapturesLeftRight();
+    std::vector<std::pair<std::vector<BoardCell*>, bool>> CheckCapturesDownLeftUpRight();
+    std::vector<std::pair<std::vector<BoardCell*>, bool>> CheckCapturesDownRightUpLeft();
+    std::vector<std::pair<std::vector<BoardCell*>, bool>> CheckCapturesLeftRight();
+    std::vector<std::pair<std::vector<BoardCell*>, bool>> GetRowsToCapture();
 public:
     Game(int boardSize, int pawnTakeThreshold, int whiteInitialPawns, int blackInitialPawns, int whiteReserve, int blackReserve, bool currentPlayer);
     ~Game();
