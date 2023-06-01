@@ -1,4 +1,3 @@
-#include <iostream>
 #include "CommandManager.h"
 
 using namespace std;

@@ -41,6 +41,30 @@ Game::Game(int boardSize, int pawnTakeThreshold, int whiteInitialPawns, int blac
             std::cout << "BOARD_STATE_OK\n";
     }
 
+    gameState = "in_progress";
+}
+
+
+Game::Game(Game* other) {
+    this->boardSize = other->boardSize;
+    this->pawnTakeThreshold = other->pawnTakeThreshold;
+    this->whiteInitialPawns = other->whiteInitialPawns;
+    this->blackInitialPawns = other->blackInitialPawns;
+    this->whiteReserve = other->whiteReserve;
+    this->blackReserve = other->blackReserve;
+    this->currentPlayer = other->currentPlayer;
+    this->whiteOnBoard = other->whiteOnBoard;
+    this->blackOnBoard = other->blackOnBoard;
+    this->gameState = other->gameState;
+
+    board = new std::list<BoardCell*>[DIAGONAL_LENGTH + 2];
+    for (int i = 0; i < DIAGONAL_LENGTH + 2; i++) {
+        for (auto it = other->board[i].begin(); it != other->board[i].end(); it++) {
+            board[i].push_back(new BoardCell((*it)->x, (*it)->y, (*it)->GetState()));
+        }
+    }
+
+    FindCellConnections();
 }
 
 
@@ -220,17 +244,17 @@ void Game::PrintBoard() {
 }
 
 
-void Game::MakeMove(std::vector<std::string>& arguments) {
+void Game::MakeMove(std::vector<std::string>& arguments, bool verbal) {
     int xSource, ySource, xDest, yDest;
     std::string move = arguments[0];
     DetermineMoveCoords(move, &xSource, &ySource, &xDest, &yDest);
-    if (CheckBadIndex(xSource, ySource) || CheckBadIndex(xDest, yDest))
+    if (CheckBadIndex(xSource, ySource, verbal) || CheckBadIndex(xDest, yDest, verbal))
         return;
-    if (CheckBadMoveWrongField(xSource, ySource, xDest, yDest))
+    if (CheckBadMoveWrongField(xSource, ySource, xDest, yDest, verbal))
         return;
-    if (CheckUnknownDirection(xSource, ySource, xDest, yDest))
+    if (CheckUnknownDirection(xSource, ySource, xDest, yDest, verbal))
         return;
-    if (CheckBadMoveRowFull(xSource, ySource, xDest, yDest))
+    if (CheckBadMoveRowFull(xSource, ySource, xDest, yDest, verbal))
         return;
 
     MoveLine(xSource, ySource, xDest, yDest);
@@ -258,16 +282,20 @@ void Game::MakeMove(std::vector<std::string>& arguments) {
 
                 if (foundFirst && foundSecond) {
                     if (counter < pawnTakeThreshold) {
-                        std::cout << "WRONG_INDEX_OF_CHOSEN_ROW\n";
+                        gameState = "bad_move";
+                        if (verbal)
+                            std::cout << "WRONG_INDEX_OF_CHOSEN_ROW\n";
                         return;
                     }
 
                     if (current->GetState() != color) {
-                        std::cout << "WRONG_COLOR_OF_CHOSEN_ROW\n";
+                        gameState = "bad_move";
+                        if (verbal)
+                            std::cout << "WRONG_COLOR_OF_CHOSEN_ROW\n";
                         return;
                     }
-
-                    std::cout << "MOVE_COMMITTED\n";
+                    if (verbal)
+                        std::cout << "MOVE_COMMITTED\n";
                     for (auto *current : row.first) {
                         if (current->GetState() == row.second) {
                             row.second == BLACK ? blackReserve++ : whiteReserve++;
@@ -279,21 +307,26 @@ void Game::MakeMove(std::vector<std::string>& arguments) {
                 }
             }
         }
-        std::cout << "WRONG_INDEX_OF_CHOSEN_ROW\n";
+        gameState = "bad_move";
+        if (verbal)
+            std::cout << "WRONG_INDEX_OF_CHOSEN_ROW\n";
     }
     else if (!rowsToCapture.empty()) {
-        for (const auto& row : rowsToCapture)
-        for (auto* cell : row.first) {
-            if (cell->GetState() == row.second) {
-                row.second == BLACK ? blackReserve++ : whiteReserve++;
+        for (const auto& row : rowsToCapture) {
+            for (auto *cell: row.first) {
+                if (cell->GetState() == row.second) {
+                    row.second == BLACK ? blackReserve++ : whiteReserve++;
+                }
+                cell->GetState() == BLACK ? blackOnBoard-- : whiteOnBoard--;
+                cell->SetState(EMPTY);
             }
-            cell->GetState() == BLACK ? blackOnBoard-- : whiteOnBoard--;
-            cell->SetState(EMPTY);
         }
-        std::cout << "MOVE_COMMITTED\n";
+        if (verbal)
+            std::cout << "MOVE_COMMITTED\n";
     }
     else
-        std::cout << "MOVE_COMMITTED\n";
+        if (verbal)
+            std::cout << "MOVE_COMMITTED\n";
 }
 
 
@@ -351,7 +384,7 @@ void Game::MoveLine(int xSource, int ySource, int xDest, int yDest) {
 }
 
 
-bool Game::CheckBadMoveRowFull(int xSource, int ySource, int xDest, int yDest) {
+bool Game::CheckBadMoveRowFull(int xSource, int ySource, int xDest, int yDest, bool verbal) {
     int xCurrent = xDest, yCurrent = yDest, xPrev = xSource, yPrev = ySource;
 
     auto it = board[yCurrent].begin();
@@ -368,12 +401,14 @@ bool Game::CheckBadMoveRowFull(int xSource, int ySource, int xDest, int yDest) {
         it = board[yCurrent].begin();
         std::advance(it, xCurrent);
     }
-    std::cout << "BAD_MOVE_ROW_IS_FULL\n";
+    gameState = "bad_move";
+    if (verbal)
+        std::cout << "BAD_MOVE_ROW_IS_FULL\n";
     return true;
 }
 
 
-bool Game::CheckUnknownDirection(int xSource, int ySource, int xDest, int yDest) {
+bool Game::CheckUnknownDirection(int xSource, int ySource, int xDest, int yDest, bool verbal) {
     auto it = board[ySource].begin();
     std::advance(it, xSource);
     std::pair<int, int> dest = {xDest, yDest};
@@ -381,7 +416,9 @@ bool Game::CheckUnknownDirection(int xSource, int ySource, int xDest, int yDest)
         if (foundConnection.second == dest)
             return false;
     }
-    std::cout << "UNKNOWN_MOVE_DIRECTION\n";
+    gameState = "bad_move";
+    if (verbal)
+        std::cout << "UNKNOWN_MOVE_DIRECTION\n";
     return true;
 }
 
@@ -402,26 +439,32 @@ void Game::DetermineMoveCoords(std::string& move, int* xSource, int* ySource, in
 }
 
 
-bool Game::CheckBadIndex(int x, int y) {
+bool Game::CheckBadIndex(int x, int y, bool verbal) {
     if (y < 0 || y >= DIAGONAL_LENGTH + 2 || x < 0 || x >= board[y].size()) {
-        std::cout << "BAD_MOVE_" << char(y + 'a') << x + 1 << "_IS_WRONG_INDEX\n";
+        gameState = "bad_move";
+        if (verbal)
+            std::cout << "BAD_MOVE_" << char(y + 'a') << x + 1 << "_IS_WRONG_INDEX\n";
         return true;
     }
     return false;
 }
 
 
-bool Game::CheckBadMoveWrongField(int xSource, int ySource, int xDest, int yDest) {
+bool Game::CheckBadMoveWrongField(int xSource, int ySource, int xDest, int yDest, bool verbal) {
     auto it = board[ySource].begin();
     std::advance(it, xSource);
     if ((*it)->GetState() != BORDER) {
-        std::cout << "BAD_MOVE_" << char(ySource + 'a') << xSource + 1 << "_IS_WRONG_STARTING_FIELD\n";
+        gameState = "bad_move";
+        if (verbal)
+            std::cout << "BAD_MOVE_" << char(ySource + 'a') << xSource + 1 << "_IS_WRONG_STARTING_FIELD\n";
         return true;
     }
     it = board[yDest].begin();
     std::advance(it, xDest);
     if ((*it)->GetState() == BORDER) {
-        std::cout << "BAD_MOVE_" << char(yDest + 'a') << xDest + 1 << "_IS_WRONG_DESTINATION_FIELD\n";
+        gameState = "bad_move";
+        if (verbal)
+            std::cout << "BAD_MOVE_" << char(yDest + 'a') << xDest + 1 << "_IS_WRONG_DESTINATION_FIELD\n";
         return true;
     }
     return false;
@@ -650,6 +693,8 @@ std::vector<std::pair<std::vector<BoardCell*>, bool>> Game::CheckCapturesDownLef
                 }
                 else {
                     state = (*cell)->GetState();
+                    if (counter < pawnTakeThreshold)
+                        counter = 1;
                     line.push_back(*cell);
                 }
             }
@@ -727,6 +772,8 @@ std::vector<std::pair<std::vector<BoardCell*>, bool>> Game::CheckCapturesDownRig
                 }
                 else {
                     state = (*it)->GetState();
+                    if (counter < pawnTakeThreshold)
+                        counter = 1;
                     line.push_back(*it);
                 }
             }
@@ -798,6 +845,8 @@ std::vector<std::pair<std::vector<BoardCell*>, bool>> Game::CheckCapturesLeftRig
                 }
                 else {
                     state = (*it)->GetState();
+                    if (counter < pawnTakeThreshold)
+                        counter = 1;
                     line.push_back(*it);
                 }
             }
@@ -862,6 +911,8 @@ std::vector<std::pair<std::vector<BoardCell*>, bool>> Game::CheckCapturesLeftRig
                 }
                 else {
                     state = (*it)->GetState();
+                    if (counter < pawnTakeThreshold)
+                        counter = 1;
                     line.push_back(*it);
                 }
             }
@@ -899,4 +950,17 @@ int Game::CheckRowsToCapture() {
     captureRowsCount += CheckCapturesLeftRight().size();
 
     return captureRowsCount;
+}
+
+
+int Game::GetBoardSize() const {
+    return boardSize;
+}
+
+std::list<BoardCell *> *Game::GetBoard() const {
+    return board;
+}
+
+std::string Game::GetGameState() const {
+    return gameState;
 }

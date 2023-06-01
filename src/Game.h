@@ -3,6 +3,7 @@
 
 #include <list>
 #include <vector>
+#include <string>
 #include "BoardCell.h"
 
 #define in_progress 0
@@ -15,6 +16,7 @@
 
 #define DIAGONAL_LENGTH 2 * boardSize - 1
 
+
 class Game {
 private:
     std::list<BoardCell*>* board;
@@ -26,22 +28,18 @@ private:
     int whiteOnBoard;
     int blackOnBoard;
 
-    int whiteReserve;
-    int blackReserve;
-
     bool currentPlayer;
-    int gameState;
+    std::string gameState;
 
-    [[nodiscard]] bool CheckGameConfigCorrectness() const;
     void InitBoardArray();
     void DeleteBoardArray();
     bool FillBoard();
     void FindCellConnections();
     static void DetermineMoveCoords(std::string& move, int* xSource, int* ySource, int* xDest, int* yDest);
-    bool CheckBadIndex(int x, int y);
-    bool CheckBadMoveWrongField(int xSource, int ySource, int xDest, int yDest);
-    bool CheckUnknownDirection(int xSource, int ySource, int xDest, int yDest);
-    bool CheckBadMoveRowFull(int xSource, int ySource, int xDest, int yDest);
+    bool CheckBadIndex(int x, int y, bool verbal);
+    bool CheckBadMoveWrongField(int xSource, int ySource, int xDest, int yDest, bool verbal);
+    bool CheckUnknownDirection(int xSource, int ySource, int xDest, int yDest, bool verbal);
+    bool CheckBadMoveRowFull(int xSource, int ySource, int xDest, int yDest, bool verbal);
     void MoveLine(int xSource, int ySource, int xDest, int yDest);
     int CheckRowsToCapture();
     std::vector<std::pair<std::vector<BoardCell*>, bool>> CheckCapturesDownLeftUpRight();
@@ -49,11 +47,20 @@ private:
     std::vector<std::pair<std::vector<BoardCell*>, bool>> CheckCapturesLeftRight();
     std::vector<std::pair<std::vector<BoardCell*>, bool>> GetRowsToCapture();
 public:
+    int whiteReserve;
+    int blackReserve;
+
     Game(int boardSize, int pawnTakeThreshold, int whiteInitialPawns, int blackInitialPawns, int whiteReserve, int blackReserve, bool currentPlayer);
+    explicit Game(Game* other);
     ~Game();
 
+
     void PrintBoard();
-    void MakeMove(std::vector<std::string>& arguments);
+    void MakeMove(std::vector<std::string>& arguments, bool verbal);
+
+    int GetBoardSize() const;
+    [[nodiscard]] std::list<BoardCell*>* GetBoard() const;
+    std::string GetGameState() const;
 };
 
 

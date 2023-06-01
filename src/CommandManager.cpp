@@ -2,7 +2,6 @@
 #include <iostream>
 #include <vector>
 #include <sstream>
-#include <iterator>
 #include "CommandManager.h"
 
 void CommandManager::DispatchCommand() {
@@ -21,8 +20,10 @@ void CommandManager::DispatchCommand() {
             while (std::getline(ss, temp, ' ')) {
                 arguments.push_back(temp);
             }
-            game->MakeMove(arguments);
+            game->MakeMove(arguments, true);
         }
+        else if (command == "GEN_ALL_POS_MOV_NUM")
+            solver->GenerateUniqueGameStates();
     }
 }
 
@@ -31,4 +32,5 @@ void CommandManager::CreateGame() {
     char currentPlayer;
     std::cin >> boardSize >> pawnTakeThreshold >> whiteInitialPawns >> blackInitialPawns >> whiteReserve >> blackReserve >> currentPlayer;
     game = new Game(boardSize, pawnTakeThreshold, whiteInitialPawns, blackInitialPawns, whiteReserve, blackReserve, currentPlayer == 'B');
+    solver = new Solver(game);
 }
