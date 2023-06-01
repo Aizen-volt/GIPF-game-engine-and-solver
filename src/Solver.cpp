@@ -47,13 +47,12 @@ void Solver::PerformMove(std::set<Game*>& uniqueStates, BoardCell *cell) {
 
 
         if (gameCopy->GetGameState() == "in_progress") {
-            if (uniqueStates.empty()) {
+            if (uniqueStates.empty())
                 uniqueStates.emplace(gameCopy);
-            }
 
             std::vector<bool> differs(uniqueStates.size(), false);
             int counter = 0;
-            for (auto state : uniqueStates) {
+            for (auto& state : uniqueStates) {
                 if (state->whiteReserve != gameCopy->whiteReserve || state->blackReserve != gameCopy->blackReserve) {
                     differs[counter] = true;
                     counter++;
@@ -66,20 +65,17 @@ void Solver::PerformMove(std::set<Game*>& uniqueStates, BoardCell *cell) {
                         auto it2 = gameCopy->GetBoard()[i].begin();
                         std::advance(it2, k);
                         k++;
-                        if ((*it)->GetState() != (*it2)->GetState()) {
+                        if ((*it)->GetState() != (*it2)->GetState())
                             differs[counter] = true;
-                        }
                     }
                 }
                 counter++;
             }
-            if (std::accumulate(differs.begin(), differs.end(), 0) == differs.size()) {
+            if (std::accumulate(differs.begin(), differs.end(), 0) == differs.size())
                 uniqueStates.emplace(gameCopy);
-            }
             gameCopy = new Game(originalGame);
         }
-        else {
+        else
             gameCopy = new Game(originalGame);
-        }
     }
 }
