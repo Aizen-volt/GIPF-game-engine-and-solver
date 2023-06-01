@@ -235,9 +235,7 @@ void Game::MakeMove(std::vector<std::string>& arguments) {
 
     MoveLine(xSource, ySource, xDest, yDest);
     std::vector<std::pair<std::vector<BoardCell*>, bool>> rowsToCapture = GetRowsToCapture();
-    if (rowsToCapture.size() > 1 && arguments.size() < 3)
-        std::cout << "NOT SPECIFIED\n";
-    else {
+    if (!rowsToCapture.empty() && arguments.size() == 4) {
         bool color = arguments[1] == "b:";
         int y1 = arguments[2][0] - 'a';
         int x1 = arguments[2][1] - '0' - 1;
@@ -283,6 +281,19 @@ void Game::MakeMove(std::vector<std::string>& arguments) {
         }
         std::cout << "WRONG_INDEX_OF_CHOSEN_ROW\n";
     }
+    else if (!rowsToCapture.empty()) {
+        for (const auto& row : rowsToCapture)
+        for (auto* cell : row.first) {
+            if (cell->GetState() == row.second) {
+                row.second == BLACK ? blackReserve++ : whiteReserve++;
+            }
+            cell->GetState() == BLACK ? blackOnBoard-- : whiteOnBoard--;
+            cell->SetState(EMPTY);
+        }
+        std::cout << "MOVE_COMMITTED\n";
+    }
+    else
+        std::cout << "MOVE_COMMITTED\n";
 }
 
 
