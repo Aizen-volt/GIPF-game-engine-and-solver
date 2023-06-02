@@ -22,8 +22,16 @@ void CommandManager::DispatchCommand() {
             }
             game->MakeMove(arguments, true);
         }
+        else if (command == "GEN_ALL_POS_MOV")
+            solver->GenerateUniqueGameStates(true, false);
         else if (command == "GEN_ALL_POS_MOV_NUM")
-            solver->GenerateUniqueGameStates();
+            solver->GenerateUniqueGameStates(false, false);
+        else if (command == "GEN_ALL_POS_MOV_EXT")
+            solver->GenerateUniqueGameStates(true, true);
+        else if (command == "GEN_ALL_POS_MOV_EXT_NUM")
+            solver->GenerateUniqueGameStates(false, true);
+        else if (command == "IS_GAME_OVER")
+            game->PrintGameState();
     }
 }
 
