@@ -21,6 +21,7 @@ class Game {
 private:
     std::list<BoardCell*>* board;
     int boardSize;
+    int boardCellsCount;
     int pawnTakeThreshold;
     int whiteInitialPawns;
     int blackInitialPawns;
@@ -61,6 +62,8 @@ public:
     int GetBoardSize() const;
     [[nodiscard]] std::list<BoardCell*>* GetBoard() const;
     std::string GetGameState() const;
+    void PrintGameState() const;
+    bool GetCurrentPlayer() const;
 };
 
 

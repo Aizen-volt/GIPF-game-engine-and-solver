@@ -12,8 +12,8 @@ private:
 public:
     Solver(Game* game);
 
-    void GenerateUniqueGameStates();
-    void PerformMove(std::set<Game*>& uniqueStates, BoardCell* cell);
+    void GenerateUniqueGameStates(bool verbal, bool winOnly);
+    int PerformMove(std::set<Game*>& uniqueStates, BoardCell* cell, bool verbal, bool winOnly);
 };
 
 

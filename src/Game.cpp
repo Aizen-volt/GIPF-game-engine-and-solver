@@ -16,6 +16,7 @@ Game::Game(int boardSize, int pawnTakeThreshold, int whiteInitialPawns, int blac
 
     whiteOnBoard = 0;
     blackOnBoard = 0;
+    boardCellsCount = 0;
 
     InitBoardArray();
     bool inputCorrect = FillBoard();
@@ -41,7 +42,14 @@ Game::Game(int boardSize, int pawnTakeThreshold, int whiteInitialPawns, int blac
             std::cout << "BOARD_STATE_OK\n";
     }
 
-    gameState = "in_progress";
+    if (currentPlayer == BLACK && blackReserve <= 0)
+        gameState = "white_win";
+    else if (currentPlayer == WHITE && whiteReserve <= 0)
+        gameState = "black_win";
+    else if (blackOnBoard + whiteOnBoard >= boardCellsCount)
+        gameState = (currentPlayer == BLACK ? "dead_lock black" : "dead_lock white");
+    else
+        gameState = "in_progress";
 }
 
 
@@ -56,6 +64,7 @@ Game::Game(Game* other) {
     this->whiteOnBoard = other->whiteOnBoard;
     this->blackOnBoard = other->blackOnBoard;
     this->gameState = other->gameState;
+    this->boardCellsCount = other->boardCellsCount;
 
     board = new std::list<BoardCell*>[DIAGONAL_LENGTH + 2];
     for (int i = 0; i < DIAGONAL_LENGTH + 2; i++) {
@@ -85,6 +94,7 @@ void Game::InitBoardArray() {
                 continue;
             }
             board[i].push_back(new BoardCell(j, i, EMPTY));
+            boardCellsCount++;
         }
     }
 }
@@ -248,14 +258,17 @@ void Game::MakeMove(std::vector<std::string>& arguments, bool verbal) {
     int xSource, ySource, xDest, yDest;
     std::string move = arguments[0];
     DetermineMoveCoords(move, &xSource, &ySource, &xDest, &yDest);
-    if (CheckBadIndex(xSource, ySource, verbal) || CheckBadIndex(xDest, yDest, verbal))
+
+    if (CheckBadIndex(xSource, ySource, verbal) ||
+        CheckBadIndex(xDest, yDest, verbal) ||
+        CheckBadMoveWrongField(xSource, ySource, xDest, yDest, verbal) ||
+        CheckUnknownDirection(xSource, ySource, xDest, yDest, verbal) ||
+        CheckBadMoveRowFull(xSource, ySource, xDest, yDest, verbal)) {
+        gameState = "bad_move ";
+        gameState += currentPlayer == BLACK ? "black" : "white" + arguments[0];
         return;
-    if (CheckBadMoveWrongField(xSource, ySource, xDest, yDest, verbal))
-        return;
-    if (CheckUnknownDirection(xSource, ySource, xDest, yDest, verbal))
-        return;
-    if (CheckBadMoveRowFull(xSource, ySource, xDest, yDest, verbal))
-        return;
+    }
+
 
     MoveLine(xSource, ySource, xDest, yDest);
     std::vector<std::pair<std::vector<BoardCell*>, bool>> rowsToCapture = GetRowsToCapture();
@@ -282,14 +295,16 @@ void Game::MakeMove(std::vector<std::string>& arguments, bool verbal) {
 
                 if (foundFirst && foundSecond) {
                     if (counter < pawnTakeThreshold) {
-                        gameState = "bad_move";
+                        gameState = "bad_move ";
+                        gameState += currentPlayer == BLACK ? "black" : "white" + arguments[0];
                         if (verbal)
                             std::cout << "WRONG_INDEX_OF_CHOSEN_ROW\n";
                         return;
                     }
 
                     if (current->GetState() != color) {
-                        gameState = "bad_move";
+                        gameState = "bad_move ";
+                        gameState += currentPlayer == BLACK ? "black" : "white" + arguments[0];
                         if (verbal)
                             std::cout << "WRONG_COLOR_OF_CHOSEN_ROW\n";
                         return;
@@ -307,7 +322,8 @@ void Game::MakeMove(std::vector<std::string>& arguments, bool verbal) {
                 }
             }
         }
-        gameState = "bad_move";
+        gameState = "bad_move ";
+        gameState += currentPlayer == BLACK ? "black" : "white" + arguments[0];
         if (verbal)
             std::cout << "WRONG_INDEX_OF_CHOSEN_ROW\n";
     }
@@ -377,10 +393,17 @@ void Game::MoveLine(int xSource, int ySource, int xDest, int yDest) {
     std::advance(it, xDest);
     (*it)->SetState(currentPlayer);
 
-    currentPlayer ? blackReserve-- : whiteReserve--;
-    currentPlayer ? blackOnBoard++ : whiteOnBoard++;
+    currentPlayer == BLACK ? blackReserve-- : whiteReserve--;
+    currentPlayer == BLACK ? blackOnBoard++ : whiteOnBoard++;
 
     currentPlayer = !currentPlayer;
+
+    if (currentPlayer == BLACK && blackReserve <= 0)
+        gameState = "white_win";
+    else if (currentPlayer == WHITE && whiteReserve <= 0)
+        gameState = "black_win";
+    else if (blackOnBoard + whiteOnBoard >= boardCellsCount)
+        gameState = (currentPlayer == BLACK ? "dead_lock black" : "dead_lock white");
 }
 
 
@@ -401,7 +424,6 @@ bool Game::CheckBadMoveRowFull(int xSource, int ySource, int xDest, int yDest, b
         it = board[yCurrent].begin();
         std::advance(it, xCurrent);
     }
-    gameState = "bad_move";
     if (verbal)
         std::cout << "BAD_MOVE_ROW_IS_FULL\n";
     return true;
@@ -416,7 +438,6 @@ bool Game::CheckUnknownDirection(int xSource, int ySource, int xDest, int yDest,
         if (foundConnection.second == dest)
             return false;
     }
-    gameState = "bad_move";
     if (verbal)
         std::cout << "UNKNOWN_MOVE_DIRECTION\n";
     return true;
@@ -441,7 +462,6 @@ void Game::DetermineMoveCoords(std::string& move, int* xSource, int* ySource, in
 
 bool Game::CheckBadIndex(int x, int y, bool verbal) {
     if (y < 0 || y >= DIAGONAL_LENGTH + 2 || x < 0 || x >= board[y].size()) {
-        gameState = "bad_move";
         if (verbal)
             std::cout << "BAD_MOVE_" << char(y + 'a') << x + 1 << "_IS_WRONG_INDEX\n";
         return true;
@@ -454,7 +474,6 @@ bool Game::CheckBadMoveWrongField(int xSource, int ySource, int xDest, int yDest
     auto it = board[ySource].begin();
     std::advance(it, xSource);
     if ((*it)->GetState() != BORDER) {
-        gameState = "bad_move";
         if (verbal)
             std::cout << "BAD_MOVE_" << char(ySource + 'a') << xSource + 1 << "_IS_WRONG_STARTING_FIELD\n";
         return true;
@@ -462,7 +481,6 @@ bool Game::CheckBadMoveWrongField(int xSource, int ySource, int xDest, int yDest
     it = board[yDest].begin();
     std::advance(it, xDest);
     if ((*it)->GetState() == BORDER) {
-        gameState = "bad_move";
         if (verbal)
             std::cout << "BAD_MOVE_" << char(yDest + 'a') << xDest + 1 << "_IS_WRONG_DESTINATION_FIELD\n";
         return true;
@@ -963,4 +981,17 @@ std::list<BoardCell *> *Game::GetBoard() const {
 
 std::string Game::GetGameState() const {
     return gameState;
+}
+
+void Game::PrintGameState() const {
+    if (gameState == "in_progress")
+        std::cout << "GAME_IN_PROGRESS\n";
+    else if (gameState == "black_win" || gameState == "dead_lock white")
+        std::cout << "THE_WINNER_IS_BLACK\n";
+    else
+        std::cout << "THE_WINNER_IS_WHITE\n";
+}
+
+bool Game::GetCurrentPlayer() const {
+    return currentPlayer;
 }
