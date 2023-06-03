@@ -6,15 +6,7 @@
 #include <string>
 #include "BoardCell.h"
 
-#define in_progress 0
-#define white_win 1
-#define black_win 2
-#define dead_lock_white 3
-#define dead_lock_black 4
-#define bad_move_white 5
-#define bad_move_black 6
-
-#define DIAGONAL_LENGTH 2 * boardSize - 1
+#define DIAGONAL_LENGTH (2 * boardSize - 1)
 
 
 class Game {
@@ -33,7 +25,7 @@ private:
     std::string gameState;
 
     void InitBoardArray();
-    void DeleteBoardArray();
+    void DeleteBoardArray() const ;
     bool FillBoard();
     void FindCellConnections();
     static void DetermineMoveCoords(std::string& move, int* xSource, int* ySource, int* xDest, int* yDest);
@@ -43,10 +35,11 @@ private:
     bool CheckBadMoveRowFull(int xSource, int ySource, int xDest, int yDest, bool verbal);
     void MoveLine(int xSource, int ySource, int xDest, int yDest);
     int CheckRowsToCapture();
+    static std::vector<std::pair<std::vector<BoardCell*>, bool>> CheckUnclearCaptures(std::vector<std::pair<std::vector<BoardCell*>, bool>>& final);
     std::vector<std::pair<std::vector<BoardCell*>, bool>> CheckCapturesDownLeftUpRight();
     std::vector<std::pair<std::vector<BoardCell*>, bool>> CheckCapturesDownRightUpLeft();
     std::vector<std::pair<std::vector<BoardCell*>, bool>> CheckCapturesLeftRight();
-    std::vector<std::pair<std::vector<BoardCell*>, bool>> GetRowsToCapture();
+
 public:
     int whiteReserve;
     int blackReserve;
@@ -57,13 +50,16 @@ public:
 
 
     void PrintBoard();
-    void MakeMove(std::vector<std::string>& arguments, bool verbal);
+    std::vector<std::pair<std::vector<BoardCell*>, bool>> MakeMove(std::vector<std::string>& arguments, bool verbal);
+    void CaptureRow(const std::pair<std::vector<BoardCell*>, bool>& row);
 
-    int GetBoardSize() const;
+    [[nodiscard]] int GetBoardSize() const;
     [[nodiscard]] std::list<BoardCell*>* GetBoard() const;
-    std::string GetGameState() const;
+    [[nodiscard]] std::string GetGameState() const;
     void PrintGameState() const;
-    bool GetCurrentPlayer() const;
+    [[nodiscard]] bool GetCurrentPlayer() const;
+
+    std::vector<std::pair<std::vector<BoardCell*>, bool>> GetRowsToCapture();
 };
 
 
