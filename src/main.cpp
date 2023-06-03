@@ -3,7 +3,7 @@
 using namespace std;
 
 int main() {
-    CommandManager commandManager;
+    CommandManager commandManager{};
     commandManager.DispatchCommand();
     return 0;
 }
