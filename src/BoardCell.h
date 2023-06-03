@@ -16,7 +16,7 @@ public:
     std::multimap<std::pair<int, int>, std::pair<int, int>> foundConnections;
     BoardCell(int x, int y, int state);
 
-    int GetState() const;
+    [[nodiscard]] int GetState() const;
     void SetState(int state);
 };
 
