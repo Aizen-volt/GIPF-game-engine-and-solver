@@ -2,6 +2,7 @@
 #include <string>
 #include <stack>
 #include <algorithm>
+#include <optional>
 #include "Game.h"
 
 
@@ -100,7 +101,7 @@ void Game::InitBoardArray() {
 }
 
 
-void Game::DeleteBoardArray() {
+void Game::DeleteBoardArray() const {
     delete[] board;
 }
 
@@ -254,7 +255,7 @@ void Game::PrintBoard() {
 }
 
 
-void Game::MakeMove(std::vector<std::string>& arguments, bool verbal) {
+std::vector<std::pair<std::vector<BoardCell*>, bool>> Game::MakeMove(std::vector<std::string>& arguments, bool verbal) {
     int xSource, ySource, xDest, yDest;
     std::string move = arguments[0];
     DetermineMoveCoords(move, &xSource, &ySource, &xDest, &yDest);
@@ -266,20 +267,27 @@ void Game::MakeMove(std::vector<std::string>& arguments, bool verbal) {
         CheckBadMoveRowFull(xSource, ySource, xDest, yDest, verbal)) {
         gameState = "bad_move ";
         gameState += currentPlayer == BLACK ? "black" : "white" + arguments[0];
-        return;
+        return {};
     }
 
 
     MoveLine(xSource, ySource, xDest, yDest);
+
+
     std::vector<std::pair<std::vector<BoardCell*>, bool>> rowsToCapture = GetRowsToCapture();
-    if (!rowsToCapture.empty() && arguments.size() == 4) {
+    std::vector<std::pair<std::vector<BoardCell*>, bool>> unclearRows = CheckUnclearCaptures(rowsToCapture);
+
+    if (!verbal)
+        return unclearRows;
+
+    if (!unclearRows.empty()) {
         bool color = arguments[1] == "b:";
         int y1 = arguments[2][0] - 'a';
         int x1 = arguments[2][1] - '0' - 1;
         int y2 = arguments[3][0] - 'a';
         int x2 = arguments[3][1] - '0' - 1;
 
-        for (auto &row : rowsToCapture) {
+        for (auto &row : unclearRows) {
             bool foundFirst = false;
             bool foundSecond = false;
             int counter = 0;
@@ -299,7 +307,7 @@ void Game::MakeMove(std::vector<std::string>& arguments, bool verbal) {
                         gameState += currentPlayer == BLACK ? "black" : "white" + arguments[0];
                         if (verbal)
                             std::cout << "WRONG_INDEX_OF_CHOSEN_ROW\n";
-                        return;
+                        return {};
                     }
 
                     if (current->GetState() != color) {
@@ -307,7 +315,7 @@ void Game::MakeMove(std::vector<std::string>& arguments, bool verbal) {
                         gameState += currentPlayer == BLACK ? "black" : "white" + arguments[0];
                         if (verbal)
                             std::cout << "WRONG_COLOR_OF_CHOSEN_ROW\n";
-                        return;
+                        return {};
                     }
                     if (verbal)
                         std::cout << "MOVE_COMMITTED\n";
@@ -318,7 +326,7 @@ void Game::MakeMove(std::vector<std::string>& arguments, bool verbal) {
                         current->GetState() == BLACK ? blackOnBoard-- : whiteOnBoard--;
                         current->SetState(EMPTY);
                     }
-                    return;
+                    return {};
                 }
             }
         }
@@ -343,6 +351,8 @@ void Game::MakeMove(std::vector<std::string>& arguments, bool verbal) {
     else
         if (verbal)
             std::cout << "MOVE_COMMITTED\n";
+
+        return {};
 }
 
 
@@ -404,6 +414,26 @@ void Game::MoveLine(int xSource, int ySource, int xDest, int yDest) {
         gameState = "black_win";
     else if (blackOnBoard + whiteOnBoard >= boardCellsCount)
         gameState = (currentPlayer == BLACK ? "dead_lock black" : "dead_lock white");
+}
+
+
+std::vector<std::pair<std::vector<BoardCell*>, bool>> Game::CheckUnclearCaptures(std::vector<std::pair<std::vector<BoardCell*>, bool>>& final) {
+    std::vector<std::pair<std::vector<BoardCell*>, bool>> answer;
+
+    for (int i = 0; i < final.size(); i++) {
+        for (int j = i + 1; j < final.size(); j++) {
+            for (int k = 0; k < final[i].first.size(); k++) {
+                for (int l = 0; l < final[j].first.size(); l++) {
+                    if (final[i].first[k]->y == final[j].first[l]->y && final[i].first[k]->x == final[j].first[l]->x) {
+                        answer.push_back(final[i]);
+                        answer.push_back(final[j]);
+                    }
+                }
+            }
+        }
+    }
+
+    return answer;
 }
 
 
@@ -975,13 +1005,16 @@ int Game::GetBoardSize() const {
     return boardSize;
 }
 
+
 std::list<BoardCell *> *Game::GetBoard() const {
     return board;
 }
 
+
 std::string Game::GetGameState() const {
     return gameState;
 }
+
 
 void Game::PrintGameState() const {
     if (gameState == "in_progress")
@@ -992,6 +1025,24 @@ void Game::PrintGameState() const {
         std::cout << "THE_WINNER_IS_WHITE\n";
 }
 
+
 bool Game::GetCurrentPlayer() const {
     return currentPlayer;
+}
+
+
+void Game::CaptureRow(const std::pair<std::vector<BoardCell *>, bool>& row) {
+    for (auto *current : row.first) {
+        for (int y = 0; y < DIAGONAL_LENGTH + 2; y++) {
+            for (auto & it : board[y]) {
+                if (it->x == current->x && it->y == current->y) {
+                    if (it->GetState() == row.second) {
+                        row.second == BLACK ? blackReserve++ : whiteReserve++;
+                    }
+                    it->GetState() == BLACK ? blackOnBoard-- : whiteOnBoard--;
+                    it->SetState(EMPTY);
+                }
+            }
+        }
+    }
 }
