@@ -9,8 +9,11 @@ private:
     Game* originalGame;
     Game* gameCopy;
     int boardSize;
+
+    void CheckUniqueness(std::set<Game*>& uniqueStates);
 public:
-    Solver(Game* game);
+    explicit Solver(Game* game);
+    ~Solver();
 
     void GenerateUniqueGameStates(bool verbal, bool winOnly);
     int PerformMove(std::set<Game*>& uniqueStates, BoardCell* cell, bool verbal, bool winOnly);
