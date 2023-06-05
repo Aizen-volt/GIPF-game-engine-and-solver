@@ -1,1 +1,2 @@
 # GIPF
+GIPF is a deterministic game for two players with a zero-sum without draws. The rules of the official version are available [here](https://files.rebel.pl/files/instrukcje/Instrukcja_Gipf_PL.pdf). The task is to implement the engine for the game in its generalized version. Generalization allows for changing the properties of the game described by four parameters (S, K, GW, GB), which are elements of the aforementioned list L of game parameters: 
