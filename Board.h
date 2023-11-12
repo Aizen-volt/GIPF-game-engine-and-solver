@@ -20,6 +20,12 @@ private:
     }
 
 
+    // checks if index given by user exists
+    bool checkIndexValid(int x, int y) {
+        return y >= 0 && y < diagonalWithBorders && x >= 0 && x < cells[y].size();
+    }
+
+
     // for displaying the board
     static void fillWithSpaces(int count) {
         for (int i = 0; i < count; i++) {
