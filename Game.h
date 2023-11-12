@@ -24,10 +24,6 @@ private:
     bool currentPlayer;
     std::string gameState;
 
-    void InitBoardArray();
-    void DeleteBoardArray() const ;
-    bool FillBoard();
-    void FindCellConnections();
     static void DetermineMoveCoords(std::string& move, int* xSource, int* ySource, int* xDest, int* yDest);
     bool CheckBadIndex(int x, int y, bool verbal);
     bool CheckBadMoveWrongField(int xSource, int ySource, int xDest, int yDest, bool verbal);
@@ -49,7 +45,6 @@ public:
     ~Game();
 
 
-    void PrintBoard();
     std::vector<std::pair<std::vector<BoardCell*>, bool>> MakeMove(std::vector<std::string>& arguments, bool verbal);
     void CaptureRow(const std::pair<std::vector<BoardCell*>, bool>& row);
 
