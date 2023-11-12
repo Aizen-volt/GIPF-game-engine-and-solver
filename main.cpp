@@ -1,9 +1,12 @@
+#include <iostream>
 #include "CommandManager.h"
 
-using namespace std;
-
 int main() {
-    CommandManager commandManager{};
-    commandManager.DispatchCommand();
+    CommandManager commandManager;
+
+    std::string command;
+    while (std::cin >> command) {
+        commandManager.execute(command);
+    }
     return 0;
 }
