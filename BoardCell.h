@@ -16,7 +16,8 @@ public:
     };
     State state;
     Position position;
-    multimap<Position, Position> connections; // stores cells that are reachable from this cell
+    multimap<Position, Position> connections; // first - position of the cell that stone came from,
+                                              // second - position of the cell that stone should go to while pushing
 
 
     BoardCell(Position position, State state) : position(position), state(state) {}
